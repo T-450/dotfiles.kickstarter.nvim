@@ -1,5 +1,4 @@
 -- Toggleterm: a better `:terminal`, floating and actionable from any buffer.
--- Installed from https://github.com/akinsho/toggleterm.nvim
 --
 -- This is the weakest dependency in the config: no upstream commit since
 -- 2025-03-09 (roughly 18 months at the time of writing) and ~92 open issues.

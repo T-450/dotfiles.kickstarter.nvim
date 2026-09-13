@@ -1,4 +1,3 @@
--- File explorer. Installed from https://github.com/nvim-tree/nvim-tree.lua
 --
 -- netrw is disabled in section 1 of init.lua. That is required, not optional -
 -- see `:help nvim-tree-netrw` in the plugin's own docs: with netrw still
