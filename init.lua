@@ -92,6 +92,13 @@ do
   -- Enable faster startup by caching compiled Lua modules
   vim.loader.enable()
 
+  -- Disable netrw's file explorer. nvim-tree.lua documents this as required
+  --  (see `:help nvim-tree-netrw`): with netrw still loaded, both explorers
+  --  claim the same directories and fight over the buffer.
+  --  These must be set before plugins load, so they live at the top of the config.
+  vim.g.loaded_netrw = 1
+  vim.g.loaded_netrwPlugin = 1
+
   -- Set <space> as the leader key
   -- See `:help mapleader`
   --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -99,7 +106,7 @@ do
   vim.g.maplocalleader = ' '
 
   -- Set to true if you have a Nerd Font installed and selected in the terminal
-  vim.g.have_nerd_font = false
+  vim.g.have_nerd_font = true
 
   -- [[ Setting options ]]
   --  See `:help vim.o`
@@ -418,23 +425,28 @@ do
   }
 
   -- [[ Colorscheme ]]
-  -- You can easily change to a different colorscheme.
   -- Change the name of the colorscheme plugin below, and then
   -- change the command under that to load whatever the name of that colorscheme is.
   --
   -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-  vim.pack.add { gh 'folke/tokyonight.nvim' }
-  ---@diagnostic disable-next-line: missing-fields
-  require('tokyonight').setup {
-    styles = {
-      comments = { italic = false }, -- Disable italics in comments
-    },
-  }
+  -- `setup()` is deliberately omitted: cyberdream's defaults are already the
+  --  minimal, effect-free set we want (transparent=false,
+  --  borderless_pickers=false, hide_fillchars=false, italic_comments=false,
+  --  saturation=1, cache=false).
+  -- ORDER MATTERS: `vim.pack.add` must come first. It is what puts the plugin
+  --  on the runtimepath; a `require('cyberdream')` above it aborts init.lua
+  --  with "module 'cyberdream' not found".
+  -- Its plugin extensions (telescope, gitsigns, mini, blink.cmp, which-key,
+  -- render-markdown) are on by default because without them those plugins would
+  -- be missing highlight groups, not because they add decoration.
+  vim.pack.add { gh 'scottmckendry/cyberdream.nvim' }
+  vim.cmd.colorscheme 'cyberdream'
 
-  -- Load the colorscheme here.
-  -- Like many other themes, this one has different styles, and you could load
-  -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-  vim.cmd.colorscheme 'tokyonight-night'
+  -- Previous theme, kept for reference. It was pruned from disk as an orphan;
+  -- uncommenting the line below reinstalls it on the next restart.
+  -- vim.pack.add { gh 'blazkowolf/gruber-darker.nvim' }
+  -- require('gruber-darker').setup { styles = { comments = { italic = false } } }
+  -- vim.cmd.colorscheme 'gruber-darker'
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -472,7 +484,6 @@ do
   -- - sd'   - [S]urround [D]elete [']quotes
   -- - sr)'  - [S]urround [R]eplace [)] [']
   require('mini.surround').setup()
-
   -- Simple and easy statusline.
   --  You could remove this setup call if you don't like it,
   --  and try some other statusline plugin
@@ -733,10 +744,27 @@ do
   --  See `:help lsp-config` for information about keys and how to configure
   ---@type table<string, vim.lsp.Config>
   local servers = {
-    -- clangd = {},
-    -- gopls = {},
-    -- pyright = {},
-    -- tsc = {},
+    -- Language servers. Every key here is installed by Mason (see
+    -- `ensure_installed` below) and enabled by the loop at the end of this section.
+    gopls = {}, -- Go
+    clangd = {}, -- C / C++
+    zls = {}, -- Zig
+    csharp_ls = {}, -- C# (needs the .NET SDK)
+    ts_ls = {}, -- TypeScript / JavaScript
+    pyright = {}, -- Python
+    taplo = {}, -- TOML
+    bashls = {}, -- shell / bash
+    marksman = {}, -- Markdown
+
+    -- NOTE on zls: Mason installs zls 0.16.0 to match your zig 0.16.0. ZLS must
+    -- be the same tagged release as the compiler; the system /usr/bin/zls is
+    -- 0.15.1, which is incompatible. Mason's bin directory is first on PATH, so
+    -- the matching build is the one that runs.
+
+    -- NOTE on ts_ls vs tsc: upstream kickstart moved to `tsc`, which requires
+    -- TypeScript 7+ (npm `typescript@latest` is currently 7.0.2). `ts_ls` works
+    -- with TS 5.x and 7.x projects alike. Switch to `tsc = {}` only if every
+    -- project you open can resolve a TypeScript 7 binary.
     --
     -- Some languages (like rust) have entire language plugins that can be useful:
     --    https://github.com/mrcjkb/rustaceanvim
@@ -803,7 +831,13 @@ do
   -- You can press `g?` for help in this menu.
   local ensure_installed = vim.tbl_keys(servers or {})
   vim.list_extend(ensure_installed, {
-    -- You can add other tools here that you want Mason to install
+    -- Formatters are not LSP servers, so they need listing here explicitly.
+    'gofumpt', -- Go
+    'shfmt', -- shell / bash
+    'csharpier', -- C# - csharp_ls exposes no formatting provider of its own
+    'prettierd', -- JSON / YAML / Markdown
+    -- `taplo` already arrives as an LSP server above, and it formats TOML too.
+    -- Zig needs nothing installed: conform's `zigfmt` shells out to `zig fmt`.
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -826,8 +860,9 @@ do
     format_on_save = function(bufnr)
       -- You can specify filetypes to autoformat on save here:
       local enabled_filetypes = {
-        -- lua = true,
-        -- python = true,
+        -- Left empty on purpose: formatting stays manual on <leader>f so that
+        -- saving never mutates a buffer without you asking. Add filetypes to
+        -- opt in, for example:  go = true, sh = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
         return { timeout_ms = 500 }
@@ -840,12 +875,25 @@ do
     },
     -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
-      -- Conform can also run multiple formatters sequentially
-      -- python = { "isort", "black" },
+      go = { 'gofumpt' },
+      sh = { 'shfmt' },
+      bash = { 'shfmt' },
+      toml = { 'taplo' },
+      cs = { 'csharpier' },
+      zig = { 'zigfmt' },
+      json = { 'prettierd', 'prettier', stop_after_first = true },
+      yaml = { 'prettierd', 'prettier', stop_after_first = true },
+      markdown = { 'prettierd', 'prettier', stop_after_first = true },
+      typescript = { 'prettierd', 'prettier', stop_after_first = true },
+      typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+      javascript = { 'prettierd', 'prettier', stop_after_first = true },
+      lua = { 'stylua' },
+      -- c / cpp are deliberately absent: they fall through to clangd's LSP
+      -- formatting via `lsp_format = 'fallback'` below.
       --
-      -- You can use 'stop_after_first' to run the first available formatter from the list
-      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      -- `stylua` also attaches as an LSP above, but that is not a race: conform
+      -- formats Lua and wins, and `lsp_format = 'fallback'` only reaches the LSP
+      -- when conform has nothing configured for the filetype.
     },
   }
 
@@ -948,7 +996,13 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+  local parsers = {
+    'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc',
+    -- Languages configured in the LSP section above. Listing them here installs
+    -- the parser at update time instead of on first file open, which avoids a
+    -- visible stall the first time you touch each language.
+    'go', 'typescript', 'tsx', 'c_sharp', 'zig', 'cpp', 'python', 'json', 'yaml', 'toml',
+  }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
@@ -1022,8 +1076,11 @@ do
 
   -- NOTE: You can add your own plugins, configuration, etc. in `lua/custom/plugins/*.lua`.
   --
-  -- For independent modules, uncomment the convenience loader:
-  -- require 'custom.plugins'
+  -- The convenience loader: requires every `lua/custom/plugins/*.lua` (except
+  --  `init.lua` itself). Files load in `vim.fs.dir()` order, which is
+  --  unspecified - so keep mutually dependent plugins in one file, with their
+  --  `vim.pack.add()` / `setup()` calls in the order they need to run.
+  require 'custom.plugins'
   --
   -- `custom.plugins` automatically loads files from that directory, but their
   -- order is unspecified. If plugins depend on each other, keep them in the same
