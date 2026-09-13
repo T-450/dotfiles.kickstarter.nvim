@@ -5,10 +5,12 @@ nvim
 
 spell/
 
-# In your personal fork, you likely want to comment this, since it's recommended to track
-# nvim-pack-lock.json in version control - see :help vim.pack-lockfile
-# For the official `nvim-lua/kickstart.nvim` git repository, we leave it ignored to avoid unneeded
-# merge conflicts.
-nvim-pack-lock.json
+# nvim-pack-lock.json IS tracked in this fork, as `:help vim.pack-lockfile`
+# recommends. The lockfile is the revert path for
+# `vim.pack.update(..., { target = 'lockfile' })`, and that path is inert while
+# the file is untracked.
 
 .DS_Store
+
+# pi agent runtime state (loops, sessions) - not part of the editor config
+.pi/
