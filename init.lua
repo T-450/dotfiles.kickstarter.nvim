@@ -224,16 +224,21 @@ do
   }
 
   -- [[ Colorscheme ]]
-  -- Installed under the name `moonfly`; swap both the spec and the
-  -- `colorscheme` call below to change themes.
-  --
-  -- ORDER MATTERS: `vim.pack.add` must come first, since it is what puts the
-  -- plugin on the runtimepath - the `colorscheme` command below needs the
-  -- `colors/moonfly.vim` it ships.
+  -- apprentice.nvim uses Lush to generate its highlights; both plugins must be
+  -- on the runtimepath before loading the colorscheme.
   vim.pack.add {
-    { src = gh 'bluz71/vim-moonfly-colors', name = 'moonfly' },
+    gh 'rktjmp/lush.nvim',
+    gh 'adisen99/apprentice.nvim',
   }
-  vim.cmd.colorscheme 'moonfly'
+  require 'lush'(require('apprentice').setup {
+    plugins = {
+      'gitsigns',
+      'lsp',
+      'nvimtree',
+      'telescope',
+      'treesitter',
+    },
+  })
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -758,3 +763,6 @@ do
 end
 
 -- vim: ts=2 sts=2 sw=2 et
+
+local ok, matugen = pcall(require, 'matugen')
+if ok then matugen.setup() end

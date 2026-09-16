@@ -4,7 +4,7 @@ function M.setup()
   require('base16-colorscheme').setup({
     base00 = '#262626',
     base01 = '#303030',
-    base02 = '#3a3a3a',
+    base02 = '#999999',
     base03 = '#6f6f6f',
     base04 = '#bcbcbc',
     base05 = '#bcbcbc',
@@ -14,10 +14,10 @@ function M.setup()
     base09 = '#ffffaf',
     base0A = '#5fafaf',
     base0B = '#87afd7',
-    base0C = '#ffff80',
-    base0D = '#96bfe9',
-    base0E = '#96e9e9',
-    base0F = '#bef4f4',
+    base0C = '#999900',
+    base0D = '#1b4c7e',
+    base0E = '#1b7e7e',
+    base0F = '#1fadad',
   })
 
   local hi = function(group, opts)
@@ -33,8 +33,8 @@ function M.setup()
   hi('TelescopePromptTitle',    { fg = '#262626',             bg = '#87afd7' })
   hi('TelescopePreviewTitle',   { fg = '#262626',             bg = '#5fafaf' })
   hi('TelescopeResultsTitle',   { fg = '#262626',             bg = '#ffffaf' })
-  hi('TelescopeSelection',      { fg = '#bcbcbc',          bg = '#3a3a3a' })
-  hi('TelescopeSelectionCaret', { fg = '#87afd7',             bg = '#3a3a3a' })
+  hi('TelescopeSelection',      { fg = '#bcbcbc',          bg = '#999999' })
+  hi('TelescopeSelectionCaret', { fg = '#87afd7',             bg = '#999999' })
   hi('TelescopeMatching',       { fg = '#87afd7',             bold = true })
 end
 
